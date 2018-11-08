@@ -24,9 +24,16 @@ while True:
 		if robo.detectaBoneco():
 			robo.modoAtaque()
 	
-	if robo.sensor_esquerdo.value() not in [0, 1, 6, 7]:
+	if robo.sensor_esquerdo.value() not in [0, 1, 7]:
+		if robo.sensor_esquerdo.value() == 6:
+			corSensor = robo.verificaAzul(robo.sensor_esquerdo)
+			if corSensor == 6:
+				continue
+		else:
+			corSensor = robo.verificaCorSensor(robo.sensor_esquerdo)
+		
 		if not robo.teste or robo.obriga_teste:
-			while not robo.alinhaCor([robo.verificaCorSensor(robo.sensor_esquerdo)], 6, robo.sensor_esquerdo, robo.sensor_direito, 200, 0, True):
+			while not robo.alinhaCor([corSensor], 6, robo.sensor_esquerdo, robo.sensor_direito, 200, 0, True):
 				continue
 			robo.andarTempo(400, 400, 700, True)
 
@@ -65,9 +72,16 @@ while True:
 					robo.saindoCor()
 	 		
 		
-	if robo.sensor_direitor.value() not in [0, 1, 6, 7]:
+	if robo.sensor_direito.value() not in [0, 1, 7]:
+		if robo.sensor_direito.value() == 6:
+			corSensor = robo.verificaAzul(robo.sensor_direito)
+			if corSensor == 6:
+				continue
+		else:
+			corSensor = robo.verificaCorSensor(robo.sensor_direito)
+			
 		if not robo.teste or robo.obrigaTeste:
-			while not robo.alinhaCor([robo.sensor_direito.value()], 6, robo.sensor_direito, robo.sensor_esquerdo, 0, 200, True):
+			while not robo.alinhaCor([corSensor], 6, robo.sensor_direito, robo.sensor_esquerdo, 0, 200, True):
 				continue
 			robo.andarTempo(400, 400, 700, True)
 
