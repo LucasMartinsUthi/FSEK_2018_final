@@ -128,12 +128,12 @@ class ClasseRobo():
 		for i in range(0, quantidade_testes):
 			if 0 <= i < quantidade_testes/4 or quantidade_testes/2 < i < 3 * quantidade_testes/4:
 				self.andarTempo(100, 100, 100)
-				if sensor.value() in cores:
+				if self.controleCores(sensor) in cores:
 					ruido += 1
 					continue
 			else:
 				self.andarTempo(-100, -100, 100)
-				if sensor.value() in cores:
+				if self.controleCores(sensor) in cores:
 						ruido += 1
 
 		if ruido > round(quantidade_testes * 0.7):
@@ -142,13 +142,11 @@ class ClasseRobo():
 			self.andarTempo(100, 100, 100, True)
 		return False
 
-
-
 	def controleSaindoCor(self):
-		if self.sensor_esquerdo.value() in [6]:
+		if self.controleCores(self.sensor_esquerdo) in [6]:
 			if self.ruido([6], self.sensor_esquerdo, 40):
 				self.andarTempo(400, 0, 300, True)
-				if self.sensor_direito.value() in [6]:
+				if self.controleCores(self.sensor_direito) in [6]:
 					self.andarTempo(-400, 0, 300, True)
 					return False
 				else:
@@ -159,10 +157,10 @@ class ClasseRobo():
 					return True
 
 
-		if self.sensor_direito.value() in [6]:
+		if self.controleCores(self.sensor_direito) in [6]:
 			if self.ruido([6], self.sensor_direito, 40):
 				self.andarTempo(0, 400, 300, True)
-				if self.sensor_esquerdo.value() in [6]:
+				if self.controleCores(self.sensor_esquerdo) in [6]:
 					self.andarTempo(0, -400, 300, True)
 					return False
 				else:
@@ -176,10 +174,10 @@ class ClasseRobo():
 
 	def saindoPista(self):
 		if self.aprendendo_cor:
-			if self.sensor_esquerdo.value() in [1] and not self.volta_dead_end:
+			if self.controleCores(self.sensor_esquerdo) in [1] and not self.volta_dead_end:
 				if self.ruido([1], self.sensor_esquerdo, 70):
 					self.andarTempo(400, 0, 500, True)
-					if self.sensor_direito.value() in [1]:
+					if self.controleCores(self.sensor_direito) in [1]:
 						self.andarTempo(-400, 0, 500, True)
 						self.girarRobo(180)
 						self.voltaDeadEnd = True
@@ -187,10 +185,10 @@ class ClasseRobo():
 					else:
 						self.andarTempo(-400, 0, 500, True)
 
-			if self.sensor_direito.value() in [1] and not self.volta_dead_end:
+			if self.controleCores(self.sensor_direito) in [1] and not self.volta_dead_end:
 				if self.ruido([1], self.sensor_direito, 70):
 					self.andarTempo(0, 400, 500, True)
-					if self.sensor_esquerdo.value() in [1]:
+					if self.controleCores(self.sensor_esquerdo) in [1]:
 						self.andarTempo(0, -400, 500, True)
 						self.girarRobo(180)
 						self.volta_dead_end = True
@@ -198,14 +196,14 @@ class ClasseRobo():
 					else:
 						self.andarTempo(0, -400, 500, True)
 
-		if self.sensor_esquerdo.value() in [0,1,7]:
+		if self.controleCores(self.sensor_esquerdo) in [0,1,7]:
 			if self.ruido([0,1,7], self.sensor_esquerdo, 20):
 				self.andarTempo(-300, -300, 300, True)
 				self.andarTempo(0, 300, 250, True)
 				self.andarTempo(300, 300, 300, True)
 				return True
 
-		if self.sensor_direito.value() in [0,1,7]:
+		if self.controleCores(self.sensor_direito) in [0,1,7]:
 			if self.ruido([0,1,7], self.sensor_direito, 20):
 				self.andarTempo(-300, -300, 300, True)
 				self.andarTempo(300, 0, 250, True)
@@ -219,16 +217,16 @@ class ClasseRobo():
 	def alinhaCor(self, cor, cor_alinhamento, sensor_entrada, sensor_ajuste, velocidade_motor_entrada, velocidade_motor_ajuste, atualiza_cor = False, garra = False):
 		if self.ruido(cor, sensor_entrada, 5):
 			if self.ruido(cor, sensor_entrada, 40):
-				while sensor_entrada.value() != cor_alinhamento:
+				while self.controleCores(sensor_entrada) != cor_alinhamento:
 					self.andarTempo(-velocidade_motor_ajuste, -velocidade_motor_entrada, 100)
 
-				while sensor_ajuste.value() not in cor:
+				while self.controleCores(sensor_ajuste) not in cor:
 					if self.cor_atual == 2:
 						self.andarTempo(velocidade_motor_entrada, velocidade_motor_ajuste, 100)
 						break
 					self.andarTempo(-velocidade_motor_entrada, velocidade_motor_ajuste, 100)
 
-				while sensor_ajuste.value() != cor_alinhamento:
+				while self.controleCores(sensor_ajuste) != cor_alinhamento:
 					self.andarTempo(-velocidade_motor_entrada, -velocidade_motor_ajuste, 100)
 
 				if not garra:
@@ -268,6 +266,8 @@ class ClasseRobo():
 		b = sensor.value(2)
 
 		hsv = self.converteHSV([r, g, b])
+		if hsv[2] <= 15:
+			return 1
 		hsv[2] = 100
 		rgb = self.converteRGB(hsv)
 
@@ -278,13 +278,41 @@ class ClasseRobo():
 
 		return self.leCor(rgb)
 
+	def verificaAzul(self, sensor):
+		sensor.mode = "RGB-RAW"
+		r = sensor.value(0)
+		g = sensor.value(1)
+		b = sensor.value(2)
+
+		_min = min(r, g, b)
+		_max = max(r, g, b)
+
+		if _min == r and _max == b:
+			hsv = self.convertHSV([r, g, b])
+			hsv[1] = 100
+			rgb = self.convertRGB(hsv)
+			sensor.mode = 'COL-COLOR'
+			return self.leCor(rgb)
+
+		sensor.mode = 'COL-COLOR'
+		return 6
+
+	def controleCores(self, sensor):
+		if sensor.value() == 6:
+			corSensor = self.verificaAzul(sensor)
+		elif sensor.value() == 0:
+			return 0
+		else:
+			corSensor = self.verificaCorSensor(senor)
+
+		return corSensor
 
 
 	def saindoCor(self):
 		while True:	
 			self.andarTempo(500, 500, 100)
 			self.saindoPista()
-			if self.sensor_esquerdo.value() == 6 and self.sensor_esquerdo.value() != self.cor_atual:
+			if self.controleCores(self.sensor_esquerdo) == 6 and self.controleCores(self.sensor_esquerdo) != self.cor_atual:
 				if self.controleSaindoCor():
 					continue
 				if self.ruido([6], self.sensor_esquerdo, 60):
@@ -293,7 +321,7 @@ class ClasseRobo():
 				self.teste = False
 				return True
 
-			if self.sensor_direito.value() == 6 and self.sensor_direito.value() != self.cor_atual:
+			if self.controleCores(self.sensor_direito) == 6 and self.controleCores(self.sensor_direito) != self.cor_atual:
 				if self.controleSaindoCor():
 					continue
 				if self.ruido([6], self.sensor_direito, 60):
@@ -309,27 +337,27 @@ class ClasseRobo():
 			self.andarTempo(700, 700, 100)
 			self.saindoPista()
 
-			if self.sensor_esquerdo.value() == 6 and self.sensor_esquerdo.value() != self.cor_atual:
+			if self.controleCores(self.sensor_esquerdo) == 6 and self.controleCores(self.sensor_esquerdo) != self.cor_atual:
 				if self.ruido([6], self.sensor_esquerdo, 100):
 					while not self.alinhaCor([6], self.cor_atual, self.sensor_esquerdo, self.sensor_direito, 300, 0):
 						continue
 					self.andarTempo(-300, -300, 1100, True)
 				return False
 
-			if self.sensor_direito.value() == 6 and self.sensor_direito.value() != self.cor_atual:
+			if self.controleCores(self.sensor_direito) == 6 and self.controleCores(self.sensor_direito) != self.cor_atual:
 				if self.ruido([6], self.sensor_direito, 100):
 					while not self.alinhaCor([6], self.cor_atual, self.sensor_direito, self.sensor_esquerdo, 0, 300):
 						continue
 				self.andarTempo(-300, -300, 1100, True)
 				return False
 
-			if self.sensor_esquerdo.value() == cor and self.sensor_esquerdo.value() != self.cor_atual:
+			if self.controleCores(self.sensor_esquerdo) == cor and self.controleCores(self.sensor_esquerdo) != self.cor_atual:
 				if self.ruido([cor], self.sensor_esquerdo, 100):
 					while not self.alinhaCor([cor], self.cor_atual, self.sensor_esquerdo, self.sensor_direito, 200, 0):
 						continue
 				return True
 
-			if self.sensor_direito.value() == cor and self.sensor_direito.value() != self.cor_atual:
+			if self.controleCores(self.sensor_direito) == cor and self.controleCores(self.sensor_direito) != self.cor_atual:
 				if self.ruido([cor], self.sensor_direito, 100):
 					while not self.alinhaCor([cor], self.cor_atual, self.sensor_direito, self.sensor_esquerdo, 0, 200):
 						continue
@@ -338,15 +366,15 @@ class ClasseRobo():
 
 
 	def voltandoCor(self, direcao):
-		if self.sensor_esquerdo.value() in [self.cor_atual] and self.voltaDeadEnd:
-			while not self.alinhaCor([self.sensor_esquerdo.value()], 6, self.sensor_esquerdo, self.sensor_direito, 300, 0):
+		if self.controleCores(self.sensor_esquerdo) in [self.cor_atual] and self.voltaDeadEnd:
+			while not self.alinhaCor([self.controleCores(self.sensor_esquerdo)], 6, self.sensor_esquerdo, self.sensor_direito, 300, 0):
 				continue
 			while self.verificaCor() != self.cor_atual:
 				self.andarTempo(500, 500, 100)
 			return False
 
-		if self.sensor_direito.value() in [self.cor_atual] and self.voltaDeadEnd:
-			while not self.alinhaCor([self.sensor_direito.value()], 6, self.sensor_direito, self.sensor_esquerdo, 0, 300):
+		if self.controleCores(self.sensor_direito) in [self.cor_atual] and self.voltaDeadEnd:
+			while not self.alinhaCor([self.controleCores(self.sensor_direito)], 6, self.sensor_direito, self.sensor_esquerdo, 0, 300):
 				continue
 			while self.verificaCor() != self.cor_atual:
 				self.andarTempo(500, 500, 100)
@@ -356,10 +384,10 @@ class ClasseRobo():
 
 
 	def novaCor(self, direcao):
-		if self.sensor_esquerdo.value() not in [0, 1, 6, 7, self.cor_atual]:
-			if self.ruido([self.sensor_esquerdo.value()], self.sensor_esquerdo, 70):
-				tempCor = self.sensor_esquerdo.value()
-				while not self.alinhaCor([self.sensor_esquerdo.value()], 6, self.sensor_esquerdo, self.sensor_direito, 300, 0):
+		if self.controleCores(self.sensor_esquerdo) not in [0, 1, 6, 7, self.cor_atual]:
+			if self.ruido([self.controleCores(self.sensor_esquerdo)], self.sensor_esquerdo, 70):
+				tempCor = self.controleCores(self.sensor_esquerdo)
+				while not self.alinhaCor([self.controleCores(self.sensor_esquerdo)], 6, self.sensor_esquerdo, self.sensor_direito, 300, 0):
 					continue
 
 				while self.verificaCor() != tempCor:
@@ -370,10 +398,10 @@ class ClasseRobo():
 				self.aprendendo_cor = False
 				return False
 
-		if self.sensor_direito.value() not in [0, 1, 6, 7, self.cor_atual]:
-			if self.ruido([self.sensor_direito.value()], self.sensor_direito, 70):
-				tempCor = self.sensor_direito.value()
-				while not self.alinhaCor([self.sensor_direito.value()], 6, self.sensor_direito, self.sensor_esquerdo, 0, 300):
+		if self.controleCores(self.sensor_direito) not in [0, 1, 6, 7, self.cor_atual]:
+			if self.ruido([self.controleCores(self.sensor_direito)], self.sensor_direito, 70):
+				tempCor = self.controleCores(self.sensor_direito)
+				while not self.alinhaCor([self.controleCores(self.sensor_direito)], 6, self.sensor_direito, self.sensor_esquerdo, 0, 300):
 					continue
 
 				while self.verificaCor() != tempCor:
@@ -384,10 +412,10 @@ class ClasseRobo():
 				self.aprendendo_cor = False
 				return False
 
-		if self.sensor_esquerdo.value() in [self.cor_atual] and not self.voltaDeadEnd:
-			if self.ruido([self.sensor_esquerdo.value()], self.sensor_esquerdo, 70):
-				tempCor = self.sensor_esquerdo.value()
-				while not self.alinhaCor([self.sensor_esquerdo.value()], 6, self.sensor_esquerdo, self.sensor_direito, 300, 0,  True):
+		if self.controleCores(self.sensor_esquerdo) in [self.cor_atual] and not self.voltaDeadEnd:
+			if self.ruido([self.controleCores(self.sensor_esquerdo)], self.sensor_esquerdo, 70):
+				tempCor = self.controleCores(self.sensor_esquerdo)
+				while not self.alinhaCor([self.controleCores(self.sensor_esquerdo)], 6, self.sensor_esquerdo, self.sensor_direito, 300, 0,  True):
 					continue
 
 				while self.verificaCor() != tempCor:
@@ -405,10 +433,10 @@ class ClasseRobo():
 				self.obriga_teste = True
 				return False
 
-		if self.sensor_direito.value() in [self.cor_atual] and not self.voltaDeadEnd:
-			if self.ruido([self.sensor_direito.value()], self.sensor_direito, 70):
-				tempCor = self.sensor_direito.value()
-				while not self.alinhaCor([self.sensor_direito.value()], 6, self.sensor_direito, self.sensor_esquerdo, 0, 300, True):
+		if self.controleCores(self.sensor_direito) in [self.cor_atual] and not self.voltaDeadEnd:
+			if self.ruido([self.controleCores(self.sensor_direito)], self.sensor_direito, 70):
+				tempCor = self.controleCores(self.sensor_direito)
+				while not self.alinhaCor([self.controleCores(self.sensor_direito)], 6, self.sensor_direito, self.sensor_esquerdo, 0, 300, True):
 					continue
 
 				while self.verificaCor() != tempCor:
@@ -570,10 +598,10 @@ class ClasseRobo():
 
 	def verificaEntradaPraca(self):
 		lista = []
-		while self.sensor_direito.value() not in [6] or self.sensor_esquerdo.value() not int [6]:
+		while self.controleCores(self.sensor_direito) not in [6] or self.controleCores(self.sensor_esquerdo) not int [6]:
 			self.andarTempo(200, 200, 100)
-			lista.append(self.sensor_direito.value())
-			lista.append(self.sensor_esquerdo.value())
+			lista.append(self.controleCores(self.sensor_direito))
+			lista.append(self.controleCores(self.sensor_esquerdo))
 
 			print(lista)
 
@@ -622,12 +650,12 @@ class ClasseRobo():
 			self.andarTempo(400,400,100)
 			self.saindoPista()
 
-			if self.sensor_direito.value() in [3]:
+			if self.controleCores(self.sensor_direito) in [3]:
 				while not self.alinhaCor([3], 6, self.sensor_direito, self.sensor_esquerdo, 0, 300, True):
 					continue
 				break
 
-			if self.sensor_esquerdo.value() in [3]:
+			if self.controleCores(self.sensor_esquerdo) in [3]:
 				while not self.alinhaCor([3], 6, self.sensor_esquerdo, self.sensor_direito, 300, 0, True):
 					continue
 				break
@@ -717,13 +745,13 @@ class ClasseRobo():
                 self.andarTempo(-300,-300, 400, True)
                 return False
         
-            while not (self.sensor_esquerdo.value() in [0,1,7] or self.sensor_direito.value() in [0,1,7]):
+            while not (self.controleCores(self.sensor_esquerdo) in [0,1,7] or self.controleCores(self.sensor_direito) in [0,1,7]):
                 self.andarTempo(100, 100, 100)
-                print(self.sensor_esquerdo.value(),self.sensor_direito.value())
-            if self.sensor_esquerdo.value() in [0,1,7]:
+                print(self.controleCores(self.sensor_esquerdo),self.controleCores(self.sensor_direito))
+            if self.controleCores(self.sensor_esquerdo) in [0,1,7]:
                 while not self.alinhaCor([0,1,7], 6, self.sensor_esquerdo, self.sensor_direito, 100, 0, False, True):
                     continue
-            if self.sensor_direito.value() in [0,1,7]:
+            if self.controleCores(self.sensor_direito) in [0,1,7]:
                 while not self.alinhaCor([0,1,7], 6, self.sensor_direito, self.sensor_esquerdo, 0, 100, False, True):
                     continue
             self.girarRoda(-90)
@@ -736,12 +764,12 @@ class ClasseRobo():
                 self.andarRotacao(220,220, 500,True)
                 self.girarRobo(-90)
             sleep(0.2)
-            while not (self.sensor_esquerdo.value() in [0,1,7] or self.sensor_direito.value() in [0,1,7]):
+            while not (self.controleCores(self.sensor_esquerdo) in [0,1,7] or self.controleCores(self.sensor_direito) in [0,1,7]):
                 self.andarTempo(100, 100, 100)
-            if self.sensor_esquerdo.value() in [0,1,7]:
+            if self.controleCores(self.sensor_esquerdo) in [0,1,7]:
                 while not self.alinhaCor([0,1,7], 6, self.sensor_esquerdo, self.sensor_direito, 100, 0, False, True):
                     continue
-            if self.sensor_direito.value() in [0,1,7]:
+            if self.controleCores(self.sensor_direito) in [0,1,7]:
                 while not self.alinhaCor([0,1,7], 6, self.sensor_direito, self.sensor_esquerdo, 0, 100, False, True):
                     continue
             self.andarTempo(-200,-200,2400, True)
@@ -815,13 +843,13 @@ class ClasseRobo():
         angulo = 0
         distpercorrida = 0
         if self.garra_ocupada:
-            while self.sensor_esquerdo.value() not in [0,1,7] or self.sensor_direito.value() not in [0,1,7]:
+            while self.controleCores(self.sensor_esquerdo) not in [0,1,7] or self.controleCores(self.sensor_direito) not in [0,1,7]:
                 self.andarTempo(200,200,100)
                 c = c+1
-            if self.sensor_esquerdo.value() in [0,1,7]: #se o sensor tiver em preto ou marrom/unknown ele tenta alinhar
+            if self.controleCores(self.sensor_esquerdo) in [0,1,7]: #se o sensor tiver em preto ou marrom/unknown ele tenta alinhar
                 while not self.alinhaCor([0,1,7], 6, self.sensor_esquerdo, self.sensor_direito, 100, 0, False, True):
                     continue
-            if self.sensor_direito.value() in [0,1,7]:
+            if self.controleCores(self.sensor_direito) in [0,1,7]:
                 while not self.alinhaCor([0,1,7], 6, self.sensor_direito, self.sensor_esquerdo, 0, 100, False, True):
                     continue
             self.girarRobo(180)			
